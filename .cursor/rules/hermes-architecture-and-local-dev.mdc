@@ -1,0 +1,75 @@
+---
+description: Hermes Agent 架构、依赖环境与 Dashboard/Gateway 本地启动命令（本仓库常用约定）
+alwaysApply: true
+---
+
+# Hermes Agent — 架构与本地运行
+
+遵循 Cursor [项目规则](https://cursor.com/cn/docs/rules)：`alwaysApply` 为本会话提供持久上下文。
+
+- **完整开发指南**：根目录 **@AGENTS.md**
+- **系统架构长文**（模块划分、依赖关系、对话界面与 Windows 要点等）：**@docs/zh/系统架构说明.md**
+
+本规则文件侧重**架构骨架**与**本工作区常用启动命令**，细节与流程图以 **@docs/zh/系统架构说明.md** 为准。
+
+## 1. 项目架构（按数据流）
+
+| 层级 | 路径 / 职责 |
+| --- | --- |
+| **Agent 核心** | `run_agent.py`（`AIAgent` 对话与工具循环）、`model_tools.py`（工具发现与调用）、`toolsets.py`（工具集） |
+| **CLI** | `cli.py`、`hermes_cli/main.py`（`chat` / `dashboard` / `gateway` / `setup` 等子命令） |
+| **工具** | `tools/*.py` 经 `tools/registry.py` 自注册；由 `model_tools` 触发加载 |
+| **消息 Gateway** | `gateway/run.py` + `gateway/platforms/*`（Feishu/Lark、Telegram、Discord 等）；**独立长驻进程**，与 TUI 子进程里的「gateway」不是同一概念 |
+| **Web 仪表盘** | 后端 `hermes_cli/web_server.py`（FastAPI + REST/WebSocket）；前端源码 `web/`（Vite + React），构建产物由 `dashboard` 子命令托管（`hermes_cli/web_dist`） |
+| **TUI + 对话后端** | `ui-tui/`（Ink/Node）↔ `tui_gateway/`（Python JSON-RPC）；Dashboard `/chat` 内嵌终端走 `hermes_cli/pty_bridge.py`（Windows 需 Web extra 与 `pywinpty`） |
+| **用户数据** | `HERMES_HOME`（默认 `%USERPROFILE%\.hermes`）：`config.yaml`、`.env`（密钥）、`logs/`、`sessions/` 等；见 `hermes_constants.py` |
+
+**工具依赖链**：`tools/registry.py` → 各 `tools/*.py` → `model_tools.py` → `run_agent.py` / CLI / Gateway。
+
+## 2. 环境与依赖
+
+- **Python**：`>= 3.11`；本仓库使用 **`venv`**（Windows：`.\venv\Scripts\activate`）。
+- **安装**：`pip install -e ".[web]"`（Dashboard + API）或 `pip install -e ".[all]"`（全量）。
+- **Node**：`>= 20`；单独跑前端 HMR 时在 `web/` 执行 `npm install`。
+- **测试**：以 **@AGENTS.md** 为准（`scripts/run_tests.sh` / Windows pytest 说明）。
+
+## 3. 本工作区常用启动命令（Windows / 仓库根目录）
+
+以下路径相对于含 `pyproject.toml` 的**仓库根**。推荐使用 **`.\venv\Scripts\hermes.exe`**（或 `.\venv\Scripts\python.exe -m hermes_cli.main`）。
+
+### 终端 1 — Web 管理面板（后端 + 内置前端，自定义端口 **9120**）
+
+```powershell
+.\venv\Scripts\hermes.exe dashboard --no-open --port 9120
+```
+
+- 浏览器访问：**http://127.0.0.1:9120**（或 `HERMES_DASHBOARD_URL` / 文档中所述绑定地址）。
+- **默认端口为 9119**；此处 **9120** 为本工作区约定端口。
+- `--no-open`：启动时不自动打开浏览器。
+
+### 终端 2 — 消息 Gateway（前台 + INFO 日志）
+
+```powershell
+.\venv\Scripts\hermes.exe gateway run -v
+```
+
+- 与 Dashboard **分进程**：负责 Feishu/Lark 等平台长连接与消息分发。
+- 可选：`gateway run -v --elevate`（仅 Windows，UAC 提权后再启动，见 `hermes gateway run --help`）。
+
+### 前后端分离开发（可选）
+
+- **后端**：同上 `dashboard`，或使用默认端口：`.\venv\Scripts\hermes.exe dashboard --no-open`
+- **前端 HMR**：`cd web` → `npm run dev`（默认 Vite 端口见 `web/vite.config.ts`，`/api` 代理到 Dashboard 后端）
+
+### 其他
+
+- **TUI**：`.\venv\Scripts\hermes.exe --tui`
+- **Gateway 作为系统服务（非前台调试）**：`hermes gateway start` / `status` / `stop`（见 `hermes gateway --help`）
+
+## 4. Windows 简要说明
+
+- PowerShell 设置环境变量请用 **`$env:NAME = "value"`**，不要用 CMD 的 `set`（子进程可能读不到）。
+- Dashboard 侧「重启消息网关」会触发 `POST /api/gateway/restart`；若单独开着本终端的 `gateway run`，可能被 SIGTERM。可分权限运行或设置 **`HERMES_DASHBOARD_DISABLE_GATEWAY_RESTART=1`**（见 `hermes_cli/config.py` 中 OPTIONAL_ENV）。
+- 内嵌 Chat / PTY、GBK 控制台与 TUI 网关排错：**@AGENTS.md** 与 `tui_gateway/transport.py` 说明。
+
+更细的插件、测试与 Gateway 平台适配：**@AGENTS.md**。

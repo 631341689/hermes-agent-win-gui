@@ -1,0 +1,55 @@
+=== gateway_dashboard_diagnostic 2026-05-03 10:35:41 ===
+--- Isolated HERMES_HOME fake dead PID 9000001 -> get_running_pid=None (expect None) ---
+--- Live probe (HERMES_HOME=C:\Users\63134\.hermes) ---
+  sys.executable=D:\Anaconda\python.exe
+  cwd=D:\hermes-agent-main\hermes-agent-main
+  gateway.pid path: C:\Users\63134\.hermes\gateway.pid exists=False
+  gateway.lock path: C:\Users\63134\.hermes\gateway.lock exists=False
+  lock active: False
+  read_runtime_status keys: ['pid', 'kind', 'argv', 'start_time', 'gateway_state', 'exit_reason', 'restart_requested', 'active_agents', 'platforms', 'updated_at']
+    gateway_state='running'
+    pid=2124
+    exit_reason=None
+    updated_at='2026-05-03T02:13:59.548607+00:00'
+  get_running_pid(cleanup_stale=False) -> None
+  --- tail C:\Users\63134\.hermes\logs\gateway.log (last 40 lines) ---
+    2026-05-03 10:07:23,241 INFO gateway.run: Adapter for feishu: created
+    2026-05-03 10:07:23,241 INFO gateway.run: Connecting to feishu...
+    2026-05-03 10:07:23,976 INFO gateway.platforms.feishu: [Feishu] Connected in websocket mode (feishu)
+    2026-05-03 10:07:23,984 INFO gateway.run: ✓ feishu connected
+    2026-05-03 10:07:23,987 INFO gateway.run: Gateway running with 1 platform(s)
+    2026-05-03 10:07:23,995 INFO gateway.run: Channel directory built: 2 target(s)
+    2026-05-03 10:07:24,000 INFO gateway.run: kanban: DB warm-up complete (embedded watchers next)
+    2026-05-03 10:07:24,001 INFO gateway.run: Press Ctrl+C to stop
+    2026-05-03 10:07:24,003 INFO gateway.run: Gateway main wait starting (pid=31892)
+    2026-05-03 10:07:24,003 INFO gateway.run: kanban notifier: extended boot delay +22s (HERMES_KANBAN_EMBED_IN_GATEWAY_WINDOWS)
+    2026-05-03 10:07:24,008 INFO gateway.run: kanban dispatcher: extended boot delay +15s (HERMES_KANBAN_EMBED_IN_GATEWAY_WINDOWS)
+    2026-05-03 10:07:24,083 INFO gateway.run: Cron ticker started (interval=60s)
+    2026-05-03 10:07:26,002 INFO gateway.run: Gateway heartbeat #1 pid=31892 adapters=['feishu']
+    2026-05-03 10:07:44,011 INFO gateway.run: kanban dispatcher: embedded in gateway (interval=60.0s)
+    2026-05-03 10:07:46,144 INFO gateway.run: Gateway heartbeat #2 pid=31892 adapters=['feishu']
+    2026-05-03 10:08:06,354 INFO gateway.run: Gateway heartbeat #3 pid=31892 adapters=['feishu']
+    2026-05-03 10:08:24,009 INFO gateway.run: Session expiry: 2 sessions to finalize (feishu:2)
+    2026-05-03 10:08:24,019 INFO gateway.run: Session expiry done: 2 finalized
+    2026-05-03 10:13:54,811 INFO gateway.run: Signal handlers: stdlib signal.signal fallback active (asyncio add_signal_handler unavailable — typical on Windows). SIGTERM from gateway --replace will drain and stop gracefully.
+    2026-05-03 10:13:55,076 INFO gateway.status: Removed stale gateway_state.json (recorded pid=31892 was not alive; fresh gateway run)
+    2026-05-03 10:13:55,085 INFO gateway.run: Starting Hermes Gateway...
+    2026-05-03 10:13:55,086 INFO gateway.run: Gateway OS pid=2124
+    2026-05-03 10:13:55,087 INFO gateway.run: Session storage: C:\Users\63134\.hermes\sessions
+    2026-05-03 10:13:55,096 INFO gateway.run: Messaging platforms enabled in config (will attempt connection): feishu
+    2026-05-03 10:13:55,096 INFO gateway.run: Building adapter for platform feishu...
+    2026-05-03 10:13:58,775 INFO gateway.run: Adapter for feishu: created
+    2026-05-03 10:13:58,776 INFO gateway.run: Connecting to feishu...
+    2026-05-03 10:13:59,539 INFO gateway.platforms.feishu: [Feishu] Connected in websocket mode (feishu)
+    2026-05-03 10:13:59,547 INFO gateway.run: ✓ feishu connected
+    2026-05-03 10:13:59,551 INFO gateway.run: Gateway running with 1 platform(s)
+    2026-05-03 10:13:59,559 INFO gateway.run: Channel directory built: 2 target(s)
+    2026-05-03 10:13:59,566 INFO gateway.run: kanban: DB warm-up complete (embedded watchers next)
+    2026-05-03 10:13:59,566 INFO gateway.run: Press Ctrl+C to stop
+    2026-05-03 10:13:59,567 INFO gateway.run: Gateway main wait starting (pid=2124)
+    2026-05-03 10:13:59,568 INFO gateway.run: kanban notifier: extended boot delay +22s (HERMES_KANBAN_EMBED_IN_GATEWAY_WINDOWS)
+    2026-05-03 10:13:59,573 INFO gateway.run: kanban dispatcher: extended boot delay +15s (HERMES_KANBAN_EMBED_IN_GATEWAY_WINDOWS)
+    2026-05-03 10:13:59,642 INFO gateway.run: Cron ticker started (interval=60s)
+    2026-05-03 10:14:01,566 INFO gateway.run: Gateway heartbeat #1 pid=2124 adapters=['feishu']
+    2026-05-03 10:14:19,565 INFO gateway.run: kanban dispatcher: embedded in gateway (interval=60.0s)
+    2026-05-03 10:14:21,730 INFO gateway.run: Gateway heartbeat #2 pid=2124 adapters=['feishu']
