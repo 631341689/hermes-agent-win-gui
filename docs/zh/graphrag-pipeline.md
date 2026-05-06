@@ -7,7 +7,7 @@
 
 ## 1. 上游 GraphRAG 在仓库中的位置
 
-**推荐**：`pip install "graphrag>=3.0.9,<4"`（本仓库 **`[knowledge-graphrag]`** extra）。若需对照源码，可在本机任意目录 **clone** 官方单体仓库（与 PyPI **`graphrag`** 包同源结构），例如本地路径 **`graphrag-main/graphrag-main/`**（该路径默认 **不** 随 Hermes 仓库提交，见根目录 **`.gitignore`**）。
+**推荐**：`pip install "graphrag>=3.0.9,<4"`（本仓库 **`[knowledge-graphrag]`** extra）。本 fork 在仓库根目录附带 **`graphrag-main/graphrag-main/`** 上游源码树，便于对照与本地 editable 安装；与 PyPI **`graphrag`** 包为同源结构。亦可改为任意本机路径 clone。
 
 | 组件 | 路径 / 说明 |
 |------|-------------|

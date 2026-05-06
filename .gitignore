@@ -71,9 +71,8 @@ result
 website/static/api/skills-index.json
 models-dev-upstream/
 
-# Optional local vendor clones (MinerU / GraphRAG upstream trees; not shipped)
-MinerU-master/
-graphrag-main/
+# Vendor trees (MinerU / GraphRAG) are tracked in this fork — ignore build cruft only.
+MinerU-master/**/mineru.egg-info/
 
 # Cursor agent plans (local only)
 .cursor/plans/
