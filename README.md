@@ -46,6 +46,23 @@
 
 ![MCP 智能解析安装命令](assets/MCP：智能解析安装命令.png)
 
+**智能解析（LLM）配置说明：** Dashboard 调用 **`POST /api/mcp/parse-install`** 时，会读取 **`HERMES_HOME/config.yaml`** 里 **`auxiliary.mcp`**（注意是挂在 **`auxiliary:`** 下面，不是文件最外层的单独 `mcp:`）。密钥与地址的**回退顺序**为：先读该段内的 `api_key` / `base_url` / `model`，为空时再使用环境变量 **`OPENAI_API_KEY`**、**`OPENAI_BASE_URL`**、**`OPENAI_MODEL`**；`model` 仍为空时默认 **`gpt-4o-mini`**。`timeout` 为请求超时秒数（服务端会限制在约 **5–120** 之间）。
+
+在现有 `auxiliary:` 块中合并或追加如下示例即可（与仓库 `hermes_cli/config.py` 中 **`DEFAULT_CONFIG["auxiliary"]["mcp"]`** 字段一致；`api_key` / `base_url` 留空时走 `.env` 与官方端点亦可）：
+
+```yaml
+auxiliary:
+  mcp:
+    provider: auto
+    model: gpt-4o-mini
+    base_url: ""
+    api_key: ""
+    timeout: 45
+    extra_body: {}
+```
+
+修改后保存 **`config.yaml`**，再于 Dashboard 使用 **「智能解析」**；若仍提示缺少密钥，请在 **`%USERPROFILE%\.hermes\.env`**（或当前 **`HERMES_HOME/.env`**）中设置 **`OPENAI_API_KEY`**，或在上述 `auxiliary.mcp.api_key` 中填写（**勿将密钥提交到 Git**）。
+
 ### Skills 导入：ZIP 安装到本机 skills 目录
 
 侧栏在 **MCP** 下方有 **Skills 导入**：上传 **单个技能** 的 ZIP（根目录或**唯一**顶层文件夹内含 **`SKILL.md`**）；**分类**下拉来自 **`GET /api/skills/categories`**（与 `~/.hermes/skills` 下已有「分类桶」目录一致），也可选「其他…」手输新文件夹名；可选覆盖技能名、强制覆盖安装、安装后清除技能提示缓存。与上游一致，安装路径为 **`skills/<可选分类>/<技能名>/`** 或 **`skills/<技能名>/`**。
