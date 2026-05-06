@@ -50,7 +50,7 @@ from hermes_cli.config import (
 from gateway.status import get_running_pid, pid_alive_best_effort, read_runtime_status
 
 try:
-    from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
@@ -62,6 +62,7 @@ except ImportError:
     )
 
 from hermes_cli.knowledge_api import router as _knowledge_router
+from hermes_cli.web_mcp import router as _mcp_router
 
 WEB_DIST = Path(os.environ["HERMES_WEB_DIST"]) if "HERMES_WEB_DIST" in os.environ else Path(__file__).parent / "web_dist"
 _log = logging.getLogger(__name__)
@@ -2723,6 +2724,14 @@ async def get_skills():
     return skills
 
 
+@app.get("/api/skills/categories")
+async def get_skill_categories():
+    """Folder names under ``HERMES_HOME/skills`` used as category buckets (ZIP / CLI install)."""
+    from tools.skills_zip import list_skill_install_categories
+
+    return {"categories": list_skill_install_categories()}
+
+
 @app.put("/api/skills/toggle")
 async def toggle_skill(body: SkillToggle):
     from hermes_cli.skills_config import get_disabled_skills, save_disabled_skills
@@ -2734,6 +2743,36 @@ async def toggle_skill(body: SkillToggle):
         disabled.add(body.name)
     save_disabled_skills(config, disabled)
     return {"ok": True, "name": body.name, "enabled": body.enabled}
+
+
+@app.post("/api/skills/install-zip")
+async def skills_install_zip(
+    file: UploadFile = File(...),
+    category: str = Form(""),
+    name: str = Form(""),
+    force: str = Form("false"),
+    invalidate_cache: str = Form("true"),
+):
+    """Install a single skill from an uploaded ZIP (Dashboard). Writes under ``HERMES_HOME/skills``."""
+    from tools.skills_zip import MAX_ZIP_BYTES, install_skill_zip_archive
+
+    raw = await file.read()
+    if len(raw) > MAX_ZIP_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"ZIP too large ({len(raw)} bytes); max {MAX_ZIP_BYTES // (1024 * 1024)} MiB.",
+        )
+    force_b = force.strip().lower() in ("1", "true", "yes", "on")
+    inv_b = invalidate_cache.strip().lower() not in ("0", "false", "no", "off", "")
+    result = await asyncio.to_thread(
+        install_skill_zip_archive,
+        raw,
+        category=category or "",
+        name_override=name or "",
+        force=force_b,
+        invalidate_cache=inv_b,
+    )
+    return result
 
 
 @app.get("/api/tools/toolsets")
@@ -4119,6 +4158,7 @@ def _mount_plugin_api_routes():
 
 
 app.include_router(_knowledge_router)
+app.include_router(_mcp_router)
 
 # Mount plugin API routes before the SPA catch-all.
 _mount_plugin_api_routes()

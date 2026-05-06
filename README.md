@@ -24,6 +24,36 @@
 
 ---
 
+## Dashboard：MCP 服务器与 Skills ZIP 导入（本日更新）
+
+在 **Dashboard → Skills** 侧栏中，除「全部 / 工具集」外，可进入 **MCP** 与 **Skills 导入**：前者读写本机 **`config.yaml`** 中的 **`mcp_servers`**（stdio / HTTP、测试连接、OAuth 等）；后者将 **ZIP 技能包**安装到当前 **`HERMES_HOME/skills`**（与 CLI `hermes skills install` 同源隔离、扫描与落盘逻辑），安装后回到「全部」刷新即可看到新技能。开发阶段可在 `web/.env.development` 设置 **`VITE_MCP_MOCK=1`**，由 MSW 模拟 **`/api/mcp/*`** 与 **`/api/skills/install-zip`** 便于纯前端联调。
+
+### MCP：工具主页（服务器列表与侧栏入口）
+
+侧栏选中 **MCP** 后，右侧为 MCP 服务器列表、粘贴安装命令入口，以及右侧表单区（新增 / 编辑服务器）。
+
+![MCP 工具主页](assets/MCP：主动接入MCP工具主页.png)
+
+### MCP：新增与编辑服务器配置
+
+支持 **stdio**（命令 + JSON 参数数组）与 **HTTP**（URL、Headers、可选 `auth: oauth`）；保存后写入 **`HERMES_HOME/config.yaml`**，运行中的 CLI / TUI / 网关需按提示重启后生效。
+
+![MCP 新增服务器配置](assets/MCP：新增服务器配置页面.png)
+
+### MCP：粘贴安装命令与智能解析
+
+可将文档中的 **`npx` / `uvx` 安装行**或 **MCP HTTPS URL** 粘贴到折叠区：先做**规则解析**填充草稿；**智能解析**会调用你在 **`config.yaml`** 中配置的 **`auxiliary.mcp`**（或 **`OPENAI_*`**）由模型推断 stdio/HTTP 与推荐字段（仅辅助填表，最终以你选择的传输方式保存）。
+
+![MCP 智能解析安装命令](assets/MCP：智能解析安装命令.png)
+
+### Skills 导入：ZIP 安装到本机 skills 目录
+
+侧栏在 **MCP** 下方有 **Skills 导入**：上传 **单个技能** 的 ZIP（根目录或**唯一**顶层文件夹内含 **`SKILL.md`**）；**分类**下拉来自 **`GET /api/skills/categories`**（与 `~/.hermes/skills` 下已有「分类桶」目录一致），也可选「其他…」手输新文件夹名；可选覆盖技能名、强制覆盖安装、安装后清除技能提示缓存。与上游一致，安装路径为 **`skills/<可选分类>/<技能名>/`** 或 **`skills/<技能名>/`**。
+
+![Skills ZIP 导入（私有化部署）](assets/私有化skills导入.png)
+
+---
+
 ## 本仓库在做什么
 
 | 方向 | 说明 |

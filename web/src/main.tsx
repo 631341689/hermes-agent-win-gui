@@ -12,16 +12,31 @@ import { ThemeProvider } from "./themes";
 // can access React, components, etc. immediately.
 exposePluginSDK();
 
-createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
-    <I18nProvider>
-      <ThemeProvider>
-        <SystemActionsProvider>
-          <KnowledgeTasksProvider>
-            <App />
-          </KnowledgeTasksProvider>
-        </SystemActionsProvider>
-      </ThemeProvider>
-    </I18nProvider>
-  </BrowserRouter>,
-);
+async function bootstrap() {
+  // Build-time: set VITE_MCP_MOCK=1 when running `npm run build` so
+  // `hermes dashboard` (production bundle in web_dist) can mock /api/mcp/* locally.
+  // Omit the variable for normal production builds.
+  if (import.meta.env.VITE_MCP_MOCK === "1") {
+    const { worker } = await import("./mocks/browser");
+    await worker.start({
+      onUnhandledRequest: "bypass",
+      serviceWorker: { url: "/mockServiceWorker.js" },
+    });
+  }
+}
+
+void bootstrap().then(() => {
+  createRoot(document.getElementById("root")!).render(
+    <BrowserRouter>
+      <I18nProvider>
+        <ThemeProvider>
+          <SystemActionsProvider>
+            <KnowledgeTasksProvider>
+              <App />
+            </KnowledgeTasksProvider>
+          </SystemActionsProvider>
+        </ThemeProvider>
+      </I18nProvider>
+    </BrowserRouter>,
+  );
+});

@@ -1,6 +1,28 @@
 const BASE = "";
 
 import type { DashboardTheme } from "@/themes/types";
+import type {
+  McpServerConfigPayload,
+  McpServerDeleteResponse,
+  McpServerOAuthLoginResponse,
+  McpServerPutResponse,
+  McpServersListResponse,
+  McpServerSummary,
+  McpServerTestResponse,
+  McpParseInstallResponse,
+} from "@/lib/mcpTypes";
+
+export type {
+  McpServerConfigPayload,
+  McpServerDeleteResponse,
+  McpServerOAuthLoginResponse,
+  McpServerPutResponse,
+  McpServersListResponse,
+  McpServerSummary,
+  McpServerTestResponse,
+  McpParseInstallResponse,
+  McpToolsFilter,
+} from "@/lib/mcpTypes";
 
 // Ephemeral session token for protected endpoints.
 // Injected into index.html by the server — never fetched via API.
@@ -452,13 +474,51 @@ export const api = {
 
   // Skills & Toolsets
   getSkills: () => fetchJSON<SkillInfo[]>("/api/skills"),
+  getSkillCategories: () => fetchJSON<SkillCategoriesResponse>("/api/skills/categories"),
   toggleSkill: (name: string, enabled: boolean) =>
     fetchJSON<{ ok: boolean }>("/api/skills/toggle", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, enabled }),
     }),
+  installSkillZip: (formData: FormData) => installSkillZipForm(formData),
   getToolsets: () => fetchJSON<ToolsetInfo[]>("/api/tools/toolsets"),
+
+  // MCP servers (``config.yaml`` → ``mcp_servers``) — backend routes land in phase B.
+  getMcpServers: () => fetchJSON<McpServersListResponse>("/api/mcp/servers"),
+  getMcpServer: (name: string) =>
+    fetchJSON<McpServerSummary>(`/api/mcp/servers/${encodeURIComponent(name)}`),
+  putMcpServer: (name: string, config: McpServerConfigPayload) =>
+    fetchJSON<McpServerPutResponse>(`/api/mcp/servers/${encodeURIComponent(name)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    }),
+  deleteMcpServer: (name: string) =>
+    fetchJSON<McpServerDeleteResponse>(`/api/mcp/servers/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    }),
+  postMcpServerTest: (name: string) =>
+    fetchJSON<McpServerTestResponse>(`/api/mcp/servers/${encodeURIComponent(name)}/test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+  postMcpServerOAuthLogin: (name: string) =>
+    fetchJSON<McpServerOAuthLoginResponse>(
+      `/api/mcp/servers/${encodeURIComponent(name)}/oauth-login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      },
+    ),
+  postMcpParseInstall: (raw: string) =>
+    fetchJSON<McpParseInstallResponse>("/api/mcp/parse-install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw }),
+    }),
 
   // Session search (FTS5)
   searchSessions: (q: string) =>
@@ -876,6 +936,51 @@ export interface KnowledgeDebugEmbeddingResponse {
   model: string;
   dimension: number;
   base_url_set: boolean;
+}
+
+/** Response from ``POST /api/skills/install-zip`` (200 body; check ``ok``). */
+export interface SkillZipInstallScanSummary {
+  verdict: string;
+  summary: string;
+  findings_count: number;
+  report_lines?: string[];
+}
+
+export interface SkillCategoriesResponse {
+  categories: string[];
+}
+
+export interface SkillZipInstallResponse {
+  ok: boolean;
+  skill_name?: string;
+  installed_path?: string;
+  scan?: SkillZipInstallScanSummary;
+  reload_hint?: string;
+  detail?: string;
+  blocked_reason?: string;
+  errors?: string[];
+}
+
+export async function installSkillZipForm(formData: FormData): Promise<SkillZipInstallResponse> {
+  const headers = new Headers();
+  const token = window.__HERMES_SESSION_TOKEN__;
+  if (token) {
+    setSessionHeader(headers, token);
+  }
+  const res = await fetch(`${BASE}/api/skills/install-zip`, { method: "POST", headers, body: formData });
+  let data: SkillZipInstallResponse = { ok: false, detail: "Invalid JSON response" };
+  try {
+    data = (await res.json()) as SkillZipInstallResponse;
+  } catch {
+    /* ignore */
+  }
+  if (res.status === 413) {
+    throw new Error(typeof data.detail === "string" ? data.detail : "ZIP too large");
+  }
+  if (!res.ok) {
+    throw new Error(typeof data.detail === "string" ? data.detail : `${res.status}: ${res.statusText}`);
+  }
+  return data;
 }
 
 export interface SkillInfo {

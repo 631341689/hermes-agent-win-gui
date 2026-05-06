@@ -488,6 +488,95 @@ export interface Translations {
     more: string;
   };
 
+  /** MCP servers tab on Skills page (``config.yaml`` → ``mcp_servers``). */
+  skillsMcp: {
+    tab: string;
+    tabHint: string;
+    title: string;
+    loading: string;
+    mockBanner: string;
+    loadFailed: string;
+    mockHint: string;
+    retry: string;
+    add: string;
+    empty: string;
+    transportStdio: string;
+    transportHttp: string;
+    enabled: string;
+    disabled: string;
+    test: string;
+    oauth: string;
+    edit: string;
+    formNew: string;
+    formEdit: string;
+    formPlaceholder: string;
+    name: string;
+    command: string;
+    argsJson: string;
+    url: string;
+    headersJson: string;
+    authOptional: string;
+    save: string;
+    badArgs: string;
+    badHeaders: string;
+    needCommand: string;
+    needUrl: string;
+    badName: string;
+    saved: string;
+    saveFailed: string;
+    confirmDelete: string;
+    deleted: string;
+    deleteFailed: string;
+    /** Icon-button tooltip + a11y for list row delete */
+    mcpRowDelete: string;
+    /** Shown after POST …/test when ``VITE_MCP_MOCK`` is not set (real dashboard API). */
+    testOk: string;
+    /** Shown after POST …/test when MSW / ``VITE_MCP_MOCK=1`` is active. */
+    testOkMock: string;
+    testFailed: string;
+    /** Fallback when OAuth POST returns no ``message`` and not in MSW mode. */
+    oauthOk: string;
+    /** Fallback when OAuth POST returns no ``message`` in MSW mode. */
+    oauthOkMock: string;
+    oauthFailed: string;
+    /** Collapsible helper — paste npx / uvx / URL from docs. */
+    pasteHelperTitle: string;
+    pasteHelperDesc: string;
+    pastePlaceholder: string;
+    pasteApply: string;
+    pasteApplied: string;
+    pasteErrorEmpty: string;
+    pasteErrorBadUrl: string;
+    pasteErrorGeneric: string;
+    pasteLlmParse: string;
+    saveUsesTransport: string;
+    transportSaveHint: string;
+    llmApplied: string;
+    llmFailed: string;
+    llmModelUsed: string;
+    /** Sidebar entry under MCP — opens ZIP import only */
+    skillZipSidebar: string;
+    skillZipPageHint: string;
+    skillZipTitle: string;
+    skillZipHint: string;
+    skillZipPick: string;
+    skillZipNeedFile: string;
+    skillZipCategory: string;
+    skillZipCategoryHint: string;
+    skillZipCategoryRoot: string;
+    skillZipCategoryOther: string;
+    skillZipCategoryCustomPh: string;
+    skillZipName: string;
+    skillZipForce: string;
+    skillZipInvalidateCache: string;
+    skillZipSubmit: string;
+    skillZipUploading: string;
+    skillZipSuccess: string;
+    skillZipRefreshFailed: string;
+    skillZipScanTitle: string;
+    skillZipMockNote: string;
+  };
+
   // ── Config page ──
   config: {
     configPath: string;

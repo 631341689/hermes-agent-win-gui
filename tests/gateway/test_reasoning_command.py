@@ -357,8 +357,8 @@ class TestReasoningCommand:
         enabled_toolsets = set(_CapturingAgent.last_init["enabled_toolsets"])
         assert "web" in enabled_toolsets
         assert "memory" in enabled_toolsets
-        assert "exa" in enabled_toolsets
-        assert "web-search-prime" in enabled_toolsets
+        assert "mcp-exa" in enabled_toolsets
+        assert "mcp-web-search-prime" in enabled_toolsets
 
     def test_run_agent_homeassistant_uses_default_platform_toolset(self, tmp_path, monkeypatch):
         hermes_home = tmp_path / "hermes"

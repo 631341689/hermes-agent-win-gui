@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState, useMemo } from "react";
 import {
   Package,
   Search,
@@ -14,6 +14,8 @@ import {
   Code,
   Zap,
   Filter,
+  Server,
+  FileArchive,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { SkillInfo, ToolsetInfo } from "@/lib/api";
@@ -30,6 +32,8 @@ import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
+import { SkillsMcpPanel } from "@/pages/SkillsMcpPanel";
+import { SkillsZipImportPanel } from "@/pages/SkillsZipImportPanel";
 
 /* ------------------------------------------------------------------ */
 /*  Types & helpers                                                    */
@@ -98,12 +102,16 @@ export default function SkillsPage() {
   const [toolsets, setToolsets] = useState<ToolsetInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<"skills" | "toolsets">("skills");
+  const [view, setView] = useState<"skills" | "toolsets" | "mcp" | "skillZipImport">("skills");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [togglingSkills, setTogglingSkills] = useState<Set<string>>(new Set());
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle, setEnd } = usePageHeader();
+
+  const reloadSkills = useCallback(() => {
+    void api.getSkills().then(setSkills).catch(() => showToast(t.skillsMcp.skillZipRefreshFailed, "error"));
+  }, [showToast, t.skillsMcp.skillZipRefreshFailed]);
 
   useEffect(() => {
     Promise.all([api.getSkills(), api.getToolsets()])
@@ -194,6 +202,30 @@ export default function SkillsPage() {
       setEnd(null);
       return;
     }
+    if (view === "mcp") {
+      setAfterTitle(
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {t.skillsMcp.tabHint}
+        </span>,
+      );
+      setEnd(null);
+      return () => {
+        setAfterTitle(null);
+        setEnd(null);
+      };
+    }
+    if (view === "skillZipImport") {
+      setAfterTitle(
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {t.skillsMcp.skillZipPageHint}
+        </span>,
+      );
+      setEnd(null);
+      return () => {
+        setAfterTitle(null);
+        setEnd(null);
+      };
+    }
     setAfterTitle(
       <span className="whitespace-nowrap text-xs text-muted-foreground">
         {t.skills.enabledOf
@@ -227,7 +259,7 @@ export default function SkillsPage() {
       setAfterTitle(null);
       setEnd(null);
     };
-  }, [enabledCount, loading, search, setAfterTitle, setEnd, skills.length, t]);
+  }, [enabledCount, loading, search, setAfterTitle, setEnd, skills.length, t, view]);
 
   const filteredToolsets = useMemo(() => {
     return toolsets.filter(
@@ -286,6 +318,24 @@ export default function SkillsPage() {
                   active={view === "toolsets"}
                   onClick={() => {
                     setView("toolsets");
+                    setSearch("");
+                  }}
+                />
+                <PanelItem
+                  icon={Server}
+                  label={t.skillsMcp.tab}
+                  active={view === "mcp"}
+                  onClick={() => {
+                    setView("mcp");
+                    setSearch("");
+                  }}
+                />
+                <PanelItem
+                  icon={FileArchive}
+                  label={t.skillsMcp.skillZipSidebar}
+                  active={view === "skillZipImport"}
+                  onClick={() => {
+                    setView("skillZipImport");
                     setSearch("");
                   }}
                 />
@@ -370,6 +420,10 @@ export default function SkillsPage() {
                 )}
               </CardContent>
             </Card>
+          ) : view === "skillZipImport" ? (
+            <SkillsZipImportPanel showToast={showToast} onSkillsChanged={reloadSkills} />
+          ) : view === "mcp" ? (
+            <SkillsMcpPanel showToast={showToast} />
           ) : view === "skills" ? (
             /* Skills list */
             <Card>

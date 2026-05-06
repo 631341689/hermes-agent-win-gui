@@ -940,10 +940,13 @@ def _load_enabled_toolsets() -> list[str] | None:
             for name, server_cfg in mcp_servers.items():
                 if not isinstance(server_cfg, dict):
                     continue
+                sk = str(name)
                 if _parse_enabled_flag(server_cfg.get("enabled", True), default=True):
-                    mcp_names.add(str(name))
+                    mcp_names.add(sk)
+                    mcp_names.add(f"mcp-{sk}")
                 else:
-                    mcp_disabled.add(str(name))
+                    mcp_disabled.add(sk)
+                    mcp_disabled.add(f"mcp-{sk}")
         except Exception:
             mcp_names = set()
             mcp_disabled = set()

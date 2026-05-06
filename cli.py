@@ -2138,7 +2138,15 @@ class HermesCLI:
             # Validate each toolset — MCP server names are resolved via
             # live registry aliases (registered during discover_mcp_tools),
             # but discovery hasn't run yet at this point, so exclude them.
-            mcp_names = set((CLI_CONFIG.get("mcp_servers") or {}).keys())
+            # ``_get_platform_tools`` uses ``mcp-<yaml_key>`` ids (see tools/mcp_tool.py).
+            _mcp_cfg = CLI_CONFIG.get("mcp_servers") or {}
+            mcp_names = set()
+            if isinstance(_mcp_cfg, dict):
+                for _k, _v in _mcp_cfg.items():
+                    if isinstance(_v, dict):
+                        _sk = str(_k)
+                        mcp_names.add(_sk)
+                        mcp_names.add(f"mcp-{_sk}")
             invalid = [t for t in toolsets if not validate_toolset(t) and t not in mcp_names]
             if invalid:
                 self._console_print(f"[bold red]Warning: Unknown toolsets: {', '.join(invalid)}[/]")

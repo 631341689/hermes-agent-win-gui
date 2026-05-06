@@ -191,9 +191,10 @@ def test_get_platform_tools_includes_enabled_mcp_servers_by_default():
 
     enabled = _get_platform_tools(config, "cli")
 
-    assert "exa" in enabled
-    assert "web-search-prime" in enabled
+    assert "mcp-exa" in enabled
+    assert "mcp-web-search-prime" in enabled
     assert "disabled-server" not in enabled
+    assert "mcp-disabled-server" not in enabled
 
 
 def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_selection():
@@ -209,8 +210,8 @@ def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_sele
 
     assert "web" in enabled
     assert "memory" in enabled
-    assert "exa" in enabled
-    assert "web-search-prime" in enabled
+    assert "mcp-exa" in enabled
+    assert "mcp-web-search-prime" in enabled
 
 
 def test_get_platform_tools_no_mcp_sentinel_excludes_all_mcp_servers():
@@ -227,8 +228,8 @@ def test_get_platform_tools_no_mcp_sentinel_excludes_all_mcp_servers():
 
     assert "web" in enabled
     assert "terminal" in enabled
-    assert "exa" not in enabled
-    assert "web-search-prime" not in enabled
+    assert "mcp-exa" not in enabled
+    assert "mcp-web-search-prime" not in enabled
     assert "no_mcp" not in enabled
 
 
@@ -245,11 +246,11 @@ def test_get_platform_tools_no_mcp_sentinel_does_not_affect_other_platforms():
 
     # api_server should exclude MCP
     api_enabled = _get_platform_tools(config, "api_server")
-    assert "exa" not in api_enabled
+    assert "mcp-exa" not in api_enabled
 
     # cli (not configured with no_mcp) should include MCP
     cli_enabled = _get_platform_tools(config, "cli")
-    assert "exa" in cli_enabled
+    assert "mcp-exa" in cli_enabled
 
 
 def test_toolset_has_keys_for_vision_accepts_codex_auth(tmp_path, monkeypatch):
@@ -593,7 +594,10 @@ def test_numeric_mcp_server_name_does_not_crash_sorted():
     assert all(isinstance(name, str) for name in enabled), (
         f"Non-string toolset names found: {enabled}"
     )
-    assert "12306" in enabled
+    # Explicit ``12306`` in platform_toolsets is MCP allowlist mode — only that server.
+    assert "mcp-12306" in enabled
+    assert "mcp-normal-server" not in enabled
+    assert "12306" not in enabled
 
     # sorted() must not raise TypeError
     sorted(enabled)

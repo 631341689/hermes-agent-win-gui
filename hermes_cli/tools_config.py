@@ -810,6 +810,36 @@ def _parse_enabled_flag(value, default: bool = True) -> bool:
     return default
 
 
+def _mcp_toolset_slug(server_key: str) -> str:
+    """Tool registry / ``model_tools`` toolset id for ``mcp_servers[<server_key>]``.
+
+    Matches ``tools/mcp_tool.py``, which registers each server under ``mcp-<name>``.
+    """
+    return f"mcp-{server_key}"
+
+
+def _mcp_toolset_passthrough_keys(
+    explicit_passthrough: Set[str], mcp_servers: dict
+) -> Set[str]:
+    """``platform_toolsets`` entries that refer to configured MCP servers (raw or ``mcp-*``)."""
+    if not isinstance(mcp_servers, dict):
+        return set()
+    yaml_keys = {
+        str(name)
+        for name, cfg in mcp_servers.items()
+        if isinstance(cfg, dict)
+    }
+    out: Set[str] = set()
+    for ts in explicit_passthrough:
+        if ts in yaml_keys:
+            out.add(ts)
+        elif ts.startswith("mcp-"):
+            sk = ts[4:]
+            if sk in yaml_keys:
+                out.add(ts)
+    return out
+
+
 def _get_platform_tools(
     config: dict,
     platform: str,
@@ -953,27 +983,41 @@ def _get_platform_tools(
     # If the platform explicitly lists one or more MCP server names, treat that
     # as an allowlist. Otherwise include every globally enabled MCP server.
     # Special sentinel: "no_mcp" in the toolset list disables all MCP servers.
+    #
+    # Registered MCP tools use toolset ids ``mcp-<yaml_key>`` (see tools/mcp_tool.py).
+    # ``enabled_toolsets`` must use those ids so validate_toolset/resolve_toolset
+    # keeps MCP tools in the model; raw YAML keys alone are not valid toolsets.
     mcp_servers = config.get("mcp_servers") or {}
+    if not isinstance(mcp_servers, dict):
+        mcp_servers = {}
     enabled_mcp_servers = {
         str(name)
         for name, server_cfg in mcp_servers.items()
         if isinstance(server_cfg, dict)
         and _parse_enabled_flag(server_cfg.get("enabled", True), default=True)
     }
-    # Allow "no_mcp" sentinel to opt out of all MCP servers for this platform
+    mcp_passthrough = _mcp_toolset_passthrough_keys(explicit_passthrough, mcp_servers)
+
+    explicit_mcp_toolsets: Set[str] = set()
     if "no_mcp" in toolset_names:
-        explicit_mcp_servers = set()
-        enabled_toolsets.update(explicit_passthrough - enabled_mcp_servers - {"no_mcp"})
+        enabled_toolsets.update(explicit_passthrough - mcp_passthrough - {"no_mcp"})
     else:
-        explicit_mcp_servers = explicit_passthrough & enabled_mcp_servers
-        enabled_toolsets.update(explicit_passthrough - enabled_mcp_servers)
+        for ts in explicit_passthrough:
+            if ts in enabled_mcp_servers:
+                explicit_mcp_toolsets.add(_mcp_toolset_slug(ts))
+            elif ts.startswith("mcp-"):
+                sk = ts[4:]
+                if sk in enabled_mcp_servers:
+                    explicit_mcp_toolsets.add(ts)
+        enabled_toolsets.update(explicit_passthrough - mcp_passthrough)
+
     if include_default_mcp_servers:
-        if explicit_mcp_servers or "no_mcp" in toolset_names:
-            enabled_toolsets.update(explicit_mcp_servers)
+        if explicit_mcp_toolsets or "no_mcp" in toolset_names:
+            enabled_toolsets.update(explicit_mcp_toolsets)
         else:
-            enabled_toolsets.update(enabled_mcp_servers)
+            enabled_toolsets.update(_mcp_toolset_slug(n) for n in enabled_mcp_servers)
     else:
-        enabled_toolsets.update(explicit_mcp_servers)
+        enabled_toolsets.update(explicit_mcp_toolsets)
 
     # Honor agent.disabled_toolsets from config.yaml — allows users to
     # globally suppress specific toolsets (e.g. "memory") across all
