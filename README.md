@@ -1,6 +1,6 @@
 # hermes-agent-win-gui
 
-在 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 上游基础上的自用维护分支：**可在纯 Windows 环境下本地运行**，带 **浏览器中的 Web 仪表盘（Dashboard）**，并包含对 **飞书（Lark）交互卡片审批** 等场景的适配与修复说明。
+本仓库是基于 **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** 的维护分支，**面向 Windows 10/11** 做了运行方式与中文文档上的整理：**PowerShell + Python 虚拟环境** 即可本地部署。提供基于浏览器的 **Web 仪表盘（Dashboard）**（会话、配置、**内嵌 Chat**、**内嵌终端** 等），不必只依赖纯命令行；完整安装与启动说明见 **`docs/zh/安装与启动指南.md`**（含 **`.env` / `config.yaml`** 示例）。另可使用 **`hermes --tui`** 独立终端界面（需按文档构建 `ui-tui/`）。可选接入 **飞书（Lark）** 等消息网关（含交互卡片审批等场景的说明与适配）。本分支在 Dashboard 中合并 **知识库**：**向量（FAISS）检索** 与 **GraphRAG**，可选 **MinerU**（PDF→Markdown）及 **`knowledge_*` 工具集**；契约与 API 见 **`docs/zh/knowledge-api.md`**。
 
 ---
 
