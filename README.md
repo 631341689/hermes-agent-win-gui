@@ -19,9 +19,10 @@
 | **纯 Windows** | 使用 **PowerShell + Python 虚拟环境** 安装与运行，无需 WSL 即可使用 CLI、Dashboard、网关等能力（具体能力取决于你安装的 pip extra）。 |
 | **可视化** | 通过下方 **`dashboard`** 命令在浏览器中打开管理界面（配置、会话、内嵌 Chat 等）。 |
 | **消息网关** | 通过 **`gateway run`** 前台运行网关，连接飞书 / Telegram 等平台时需安装 **`[messaging]`** 或 **`[feishu]`** 等依赖，并完成开放平台机器人配置。 |
+| **知识库** | 在 Dashboard 侧栏打开 **「知识库」**，管理 **向量（FAISS）** 与 **GraphRAG** 库；数据在 **`{HERMES_HOME}/knowledge/`**（默认即 **`%USERPROFILE%\.hermes\knowledge\`**）。除安装 **`[web,knowledge]`**（及可选 **`[knowledge-graphrag]`**）外，请配置 **`.env` 密钥**与 **`config.yaml`** 中的 **`terminal.cwd`**、**`knowledge.mineru` / `retrieval`**、**`web.backend`** 等，可直接照抄 **[安装与启动指南](docs/zh/安装与启动指南.md)** 文内 **第 6.1–6.3 节**示例；REST 与行为说明见 **[knowledge-api.md](docs/zh/knowledge-api.md)**，GraphRAG 与上游对照见 **[graphrag-pipeline.md](docs/zh/graphrag-pipeline.md)**。 |
 | **分发版本** | 当前发布线：**v0.13.0**。相对上游主线，本分支合并了 **Dashboard 知识库**（向量 RAG + **GraphRAG**）、**MinerU** 可选 PDF→Markdown、**`knowledge_*` 工具集**与 **`skills/research/hermes-knowledge-bases/`** 按需加载说明；安装见 **`pip install -e ".[web,knowledge]"`**，GraphRAG 见 **`[knowledge-graphrag]`**，契约 **`docs/zh/knowledge-api.md`**。 |
 
-更细的排障与发布清单见：**[docs/zh/安装与启动指南.md](docs/zh/安装与启动指南.md)**。  
+更细的排障与发布清单见：**[docs/zh/安装与启动指南.md](docs/zh/安装与启动指南.md)**（含 **`.env` / `config.yaml`** 快速配置）。  
 目录与开发约定见：**[AGENTS.md](AGENTS.md)**。
 
 ---
