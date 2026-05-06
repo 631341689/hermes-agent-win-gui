@@ -350,7 +350,7 @@ def ensure_hermes_home():
     else:
         home.mkdir(parents=True, exist_ok=True)
         _secure_dir(home)
-        for subdir in ("cron", "sessions", "logs", "logs/curator", "memories"):
+        for subdir in ("cron", "sessions", "logs", "logs/curator", "memories", "knowledge"):
             d = home / subdir
             d.mkdir(parents=True, exist_ok=True)
             _secure_dir(d)
@@ -1158,6 +1158,115 @@ DEFAULT_CONFIG = {
         # 1 = serial (pre-v0.9 behaviour).
         # Also overridable via HERMES_CRON_MAX_PARALLEL env var.
         "max_parallel_jobs": None,
+    },
+
+    # Dashboard knowledge bases — REST under /api/knowledge; files under
+    # get_hermes_home()/knowledge/.  See docs/zh/knowledge-api.md.
+    "knowledge": {
+        "enabled": True,
+        "attach_strategy": "auto",
+        "embedding": {
+            "provider": "",
+            # OpenAI-compatible embeddings; uses OPENAI_API_KEY + OPENAI_BASE_URL from ~/.hermes/.env
+            "model": "text-embedding-3-small",
+        },
+        # After each successful vector reindex: LLM writes bases/<id>/routing_summary.txt for agents.
+        "routing_summary": {
+            "enabled": True,
+            "model": "",
+            "max_source_chars": 24000,
+            "max_output_chars": 900,
+            "max_completion_tokens": 320,
+        },
+        "chunk": {
+            # window | delimiter | semantic | smart — see hermes_cli/knowledge_text.py
+            "strategy": "window",
+            "size_tokens": 512,
+            "overlap_tokens": 64,
+            "delimiter": {
+                "separators": ["\n\n", "\n", "。", ". "],
+                "merge_under_chars": 40,
+                # Optional hard cap (chars); omit to use size_tokens heuristic
+                "max_chunk_chars": None,
+            },
+            "semantic": {
+                # pack = sentence split + greedy char budget; embedding = centroid similarity merge
+                "mode": "pack",
+                "overlap_sentences": 0,
+                "similarity_threshold": 0.55,
+                "max_chunk_chars": None,
+            },
+            # smart = Markdown structure-aware (#/##, tables, fences, images); long prose uses window overlap
+            "smart": {
+                "max_chunk_chars": None,
+                "overlap_chars": None,
+            },
+        },
+        # Vector query: widen dense recall then optional BM25 blend (no GraphRAG).
+        "retrieval": {
+            # When false, ``query_vector_bases`` matches legacy behaviour (single-stage per-kb top_k).
+            "two_stage": True,
+            # Stage-1: FAISS neighbors per KB before global merge (>= final top_k).
+            "recall_per_kb": 48,
+            # Cap merged unique chunks before rerank (CPU only for BM25).
+            "max_candidates": 96,
+            # Stage-2: BM25 vs dense blend on the candidate pool; 0 = dense-only reorder after widen.
+            "lexical_weight": 0.3,
+        },
+        # Optional MinerU (opendatalab/MinerU): PDF upload → Markdown in raw/. See docs/zh/knowledge-api.md.
+        "mineru": {
+            "enabled": False,
+            # Path to directory containing the ``mineru`` package (e.g. .../MinerU-master/MinerU-master).
+            # Override with env ``HERMES_MINERU_ROOT`` if set.
+            "root": "",
+            "backend": "pipeline",
+            "parse_method": "auto",
+            "lang": "ch",
+            # Where MinerU resolves pipeline/VLM weights: huggingface | modelscope | local
+            "model_source": "huggingface",
+            # Pre-downloaded layout/OCR/VLM trees (same semantics as ``~/mineru.json`` → ``models-dir``).
+            # When non-empty, Hermes forces ``MINERU_MODEL_SOURCE=local`` for that conversion and injects
+            # these paths so MinerU does not hit the network. Example (ModelScope cache on Windows)::
+            #   pipeline: C:/Users/you/.cache/modelscope/hub/models/OpenDataLab/PDF-Extract-Kit-1.0
+            #   vlm: C:/Users/you/.cache/modelscope/hub/models/OpenDataLab/MinerU2.5-Pro-2604-1.2B
+            # Env overrides (optional): HERMES_MINERU_LOCAL_PIPELINE, HERMES_MINERU_LOCAL_VLM
+            "local_models": {
+                "pipeline": "",
+                "vlm": "",
+            },
+            # When true and ``local_models`` / env do not set a path, reuse ``models-dir`` from
+            # ``~/mineru.json`` (written by ``mineru-models-download``) if those directories exist.
+            "auto_local_models_from_mineru_json": True,
+            # When true, MinerU ``title_aided`` reads API keys from ~/.hermes/.env by
+            # ``llm_aided_model.provider`` (openai → OPENAI_*; deepseek → DEEPSEEK_*).
+            "llm_aided_use_hermes_openai": True,
+            # Same shape as top-level ``model`` block: provider + default model id for title_aided only.
+            # ``default`` empty → fall back to top-level ``model`` string (Hermes chat default).
+            # Legacy: a bare string here is still accepted as the model id (provider = openai).
+            "llm_aided_model": {
+                "provider": "openai",
+                "default": "",
+            },
+        },
+        "graphrag": {
+            "query_method": "local",
+            # Used by GraphRAG local_search when graphrag_method is local (integer community level).
+            "community_level": 2,
+            # GraphRAG indexing: standard (full LLM graph) vs fast (NLP graph + LLM reports).
+            "indexing_method": "standard",
+            # Empty strings → Hermes top-level ``model`` / ``knowledge.routing_summary.model`` /
+            # ``knowledge.embedding.model`` defaults.
+            "completion_model": "",
+            "embedding_model": "",
+            # Agent tool ``knowledge_graphrag_query`` when ``graphrag_method`` is ``auto`` (see
+            # ``hermes_cli/knowledge_graphrag_method.py``).
+            "auto_method": {
+                "enabled": True,
+                "basic_max_chars": 24,
+                "default_method": "local",
+                "global_keywords": [],
+            },
+        },
     },
 
     # Kanban multi-agent coordination — controls the dispatcher loop that
@@ -2400,6 +2509,20 @@ OPTIONAL_ENV_VARS = {
     "HERMES_DASHBOARD_DISABLE_GATEWAY_RESTART": {
         "description": "When 1/true/on, the Dashboard HTTP API rejects POST /api/gateway/restart (sidebar “Restart messaging gateway”). Use when you run `hermes gateway run` in a separate terminal and do not want the browser UI to SIGTERM it. On Windows, a non-elevated Dashboard cannot terminate an Administrator gateway anyway — this flag stops accidental restarts when both run at the same integrity level",
         "prompt": "Dashboard: disable gateway restart API",
+        "url": None,
+        "password": False,
+        "category": "setting",
+    },
+    "HERMES_MINERU_LOCAL_PIPELINE": {
+        "description": "Absolute path to a pre-downloaded MinerU **pipeline** model tree (e.g. ModelScope ``OpenDataLab/PDF-Extract-Kit-*`` cache dir). Overrides ``knowledge.mineru.local_models.pipeline`` for PDF conversion.",
+        "prompt": "MinerU local pipeline models directory",
+        "url": None,
+        "password": False,
+        "category": "setting",
+    },
+    "HERMES_MINERU_LOCAL_VLM": {
+        "description": "Absolute path to a pre-downloaded MinerU **VLM** model tree (e.g. ModelScope ``OpenDataLab/MinerU2.5-Pro-*``). Overrides ``knowledge.mineru.local_models.vlm``.",
+        "prompt": "MinerU local VLM models directory",
         "url": None,
         "password": False,
         "category": "setting",

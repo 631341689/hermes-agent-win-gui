@@ -35,6 +35,214 @@ export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> 
   return res.json();
 }
 
+/** SSE events from ``POST .../upload?stream=1`` (progress + one ``final`` payload). */
+export type KnowledgeUploadStreamEvent =
+  | { event: "saved"; filename: string; bytes: number }
+  | { event: "heartbeat" }
+  | { event: "progress"; phase: string; [k: string]: unknown }
+  | {
+      event: "final";
+      ok: boolean;
+      path: string;
+      bytes: number;
+      pdf_converted_to_markdown: boolean;
+    }
+  | { event: "error"; message: string };
+
+/** Multipart upload with SSE progress (MinerU PDF phases + heartbeats while the server works). */
+export async function uploadKnowledgeBaseFile(
+  kbId: string,
+  file: File,
+  onEvent?: (ev: KnowledgeUploadStreamEvent) => void,
+): Promise<{ ok: boolean; path: string; bytes: number; pdf_converted_to_markdown?: boolean }> {
+  const headers = new Headers();
+  const token = window.__HERMES_SESSION_TOKEN__;
+  if (token) {
+    setSessionHeader(headers, token);
+  }
+  const body = new FormData();
+  body.append("file", file);
+  const url = `${BASE}/api/knowledge/bases/${encodeURIComponent(kbId)}/upload?stream=1`;
+  const res = await fetch(url, { method: "POST", headers, body });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`${res.status}: ${text}`);
+  }
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("Upload response has no body");
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalPayload: {
+    ok: boolean;
+    path: string;
+    bytes: number;
+    pdf_converted_to_markdown?: boolean;
+  } | null = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      for (const rawLine of block.split("\n")) {
+        const line = rawLine.replace(/\r$/, "");
+        if (!line.startsWith("data: ")) continue;
+        let parsed: KnowledgeUploadStreamEvent;
+        try {
+          parsed = JSON.parse(line.slice(6)) as KnowledgeUploadStreamEvent;
+        } catch {
+          continue;
+        }
+        onEvent?.(parsed);
+        if (parsed.event === "error") {
+          throw new Error(parsed.message);
+        }
+        if (parsed.event === "final") {
+          finalPayload = {
+            ok: parsed.ok,
+            path: parsed.path,
+            bytes: parsed.bytes,
+            pdf_converted_to_markdown: parsed.pdf_converted_to_markdown,
+          };
+        }
+      }
+    }
+  }
+  if (!finalPayload) {
+    throw new Error("Upload stream ended without final event");
+  }
+  return finalPayload;
+}
+
+/** SSE from ``POST .../reindex?stream=1`` (chunking / embedding / writing + ``final``). */
+export type KnowledgeReindexStreamEvent =
+  | { event: "heartbeat" }
+  | {
+      event: "progress";
+      phase: string;
+      current?: number;
+      total?: number;
+      path?: string;
+      chunk_count?: number;
+      /** GraphRAG pipeline (mode=graphrag); see hermes_cli/knowledge_graphrag.py */
+      graphrag_event?: string;
+      graphrag_message?: string;
+      workflows?: string[];
+      workflow?: string;
+      workflow_index?: number;
+      workflow_total?: number;
+      workflows_completed?: number;
+      documents?: number;
+      indexing_method?: string;
+      message?: string;
+      subprogress_description?: string | null;
+      subprogress_current?: number | null;
+      subprogress_total?: number | null;
+      /** Filtered step list matches executed workflows when input_documents skips a loader. */
+      skipped_workflow?: string | null;
+      completed_workflows?: string[];
+      active_workflow?: string | null;
+    }
+  | { event: "final"; base: KnowledgeBase; stats: KnowledgeReindexStats }
+  | { event: "error"; message: string }
+  | { event: "cancelled"; message?: string };
+
+/** User stopped reindex (Abort button or server ``cancelled`` SSE). */
+export class KnowledgeReindexUserCancelled extends Error {
+  constructor(message = "Reindex cancelled") {
+    super(message);
+    this.name = "KnowledgeReindexUserCancelled";
+  }
+}
+
+/** Vector reindex with SSE progress (chunk → embed → write FAISS). */
+export async function reindexKnowledgeBaseWithStream(
+  kbId: string,
+  onEvent?: (ev: KnowledgeReindexStreamEvent) => void,
+  options?: { signal?: AbortSignal; graphragForceFull?: boolean },
+): Promise<{ base: KnowledgeBase; stats: KnowledgeReindexStats }> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const token = window.__HERMES_SESSION_TOKEN__;
+  if (token) {
+    setSessionHeader(headers, token);
+  }
+  const qs = new URLSearchParams({ stream: "1" });
+  if (options?.graphragForceFull === true) {
+    qs.set("full", "1");
+  }
+  const url = `${BASE}/api/knowledge/bases/${encodeURIComponent(kbId)}/reindex?${qs}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: "{}",
+      signal: options?.signal,
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new KnowledgeReindexUserCancelled();
+    }
+    throw e;
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`${res.status}: ${text}`);
+  }
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("Reindex response has no body");
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalPayload: { base: KnowledgeBase; stats: KnowledgeReindexStats } | null = null;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) >= 0) {
+        const block = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        for (const rawLine of block.split("\n")) {
+          const line = rawLine.replace(/\r$/, "");
+          if (!line.startsWith("data: ")) continue;
+          let parsed: KnowledgeReindexStreamEvent;
+          try {
+            parsed = JSON.parse(line.slice(6)) as KnowledgeReindexStreamEvent;
+          } catch {
+            continue;
+          }
+          onEvent?.(parsed);
+          if (parsed.event === "error") {
+            throw new Error(parsed.message);
+          }
+          if (parsed.event === "cancelled") {
+            throw new KnowledgeReindexUserCancelled(parsed.message);
+          }
+          if (parsed.event === "final") {
+            finalPayload = { base: parsed.base, stats: parsed.stats };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new KnowledgeReindexUserCancelled();
+    }
+    throw e;
+  }
+  if (!finalPayload) {
+    throw new Error("Reindex stream ended without final event");
+  }
+  return finalPayload;
+}
+
 async function getSessionToken(): Promise<string> {
   if (_sessionToken) return _sessionToken;
   const injected = window.__HERMES_SESSION_TOKEN__;
@@ -133,6 +341,73 @@ export const api = {
     fetchJSON<{ ok: boolean }>(`/api/cron/jobs/${id}/trigger`, { method: "POST" }),
   deleteCronJob: (id: string) =>
     fetchJSON<{ ok: boolean }>(`/api/cron/jobs/${id}`, { method: "DELETE" }),
+
+  // Knowledge bases (docs/zh/knowledge-api.md)
+  listKnowledgeBases: () => fetchJSON<{ bases: KnowledgeBase[] }>("/api/knowledge/bases"),
+  createKnowledgeBase: (body: {
+    name: string;
+    mode?: "vector" | "graphrag";
+    agent_summary?: string | null;
+    summary_routing_mode?: "manual" | "auto";
+  }) =>
+    fetchJSON<{ base: KnowledgeBase }>("/api/knowledge/bases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  deleteKnowledgeBase: (id: string) =>
+    fetchJSON<{ ok: boolean }>(`/api/knowledge/bases/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  /** Remove all files under ``raw/`` (replace-corpus workflow). */
+  clearKnowledgeRaw: (id: string) =>
+    fetchJSON<{ ok: boolean; removed_files: number }>(
+      `/api/knowledge/bases/${encodeURIComponent(id)}/raw`,
+      { method: "DELETE" },
+    ),
+  patchKnowledgeBase: (
+    id: string,
+    body: {
+      name?: string;
+      mode?: "vector" | "graphrag";
+      chunk_config?: KnowledgeChunkConfig | null;
+      agent_summary?: string | null;
+      summary_routing_mode?: "manual" | "auto";
+    },
+  ) =>
+    fetchJSON<{ base: KnowledgeBase }>(`/api/knowledge/bases/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  reindexKnowledgeBase: (id: string) =>
+    fetchJSON<{ base: KnowledgeBase; stats?: KnowledgeReindexStats }>(
+      `/api/knowledge/bases/${encodeURIComponent(id)}/reindex`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+    ),
+
+  queryKnowledge: (
+    body: {
+      kb_ids: string[];
+      query: string;
+      top_k?: number;
+      graphrag_method?: "local" | "global" | "basic" | "drift";
+    },
+    init?: RequestInit,
+  ) =>
+    fetchJSON<{ results: KnowledgeQueryHit[] }>("/api/knowledge/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: init?.signal,
+    }),
+
+  debugKnowledgeEmbedding: (input: string) =>
+    fetchJSON<KnowledgeDebugEmbeddingResponse>("/api/knowledge/debug/embedding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input }),
+    }),
 
   // Profiles (minimal)
   getProfiles: () =>
@@ -535,6 +810,72 @@ export interface CronJob {
   last_run_at?: string | null;
   next_run_at?: string | null;
   last_error?: string | null;
+}
+
+export type KnowledgeChunkStrategy = "window" | "delimiter" | "semantic" | "smart";
+
+export interface KnowledgeChunkConfig {
+  strategy?: KnowledgeChunkStrategy;
+  size_tokens?: number;
+  overlap_tokens?: number;
+  delimiter?: {
+    separators?: string[];
+    merge_under_chars?: number;
+    max_chunk_chars?: number | null;
+  };
+  semantic?: {
+    mode?: "pack" | "embedding";
+    overlap_sentences?: number;
+    similarity_threshold?: number;
+    max_chunk_chars?: number | null;
+  };
+  /** Markdown structure-aware chunking (PDF→MD); optional caps / overlap in characters */
+  smart?: {
+    max_chunk_chars?: number | null;
+    overlap_chars?: number | null;
+  };
+}
+
+export interface KnowledgeBase {
+  id: string;
+  name: string;
+  mode: "vector" | "graphrag";
+  indexing_status: "idle" | "indexing" | "ready" | "error";
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  chunk_config?: KnowledgeChunkConfig | null;
+  /** Short blurb for agents (tool knowledge_catalog); optional. */
+  agent_summary?: string | null;
+  /** Auto-generated after reindex; from ``routing_summary.txt`` on disk. */
+  routing_summary?: string | null;
+  /** manual = handwritten only for agents; auto = generated routing_summary.txt after reindex. */
+  summary_routing_mode?: "manual" | "auto";
+}
+
+export interface KnowledgeReindexStats {
+  chunk_count: number;
+  embedding_model: string;
+  dimension?: number;
+}
+
+export interface KnowledgeQueryHit {
+  chunk_id: string | null;
+  text: string;
+  source_path: string | null;
+  score: number | null;
+  kb_id: string;
+  recall_score?: number;
+  /** Present when hit comes from GraphRAG ``POST /query`` branch. */
+  kind?: "vector" | "graphrag";
+  graphrag_method?: string;
+}
+
+export interface KnowledgeDebugEmbeddingResponse {
+  ok: boolean;
+  model: string;
+  dimension: number;
+  base_url_set: boolean;
 }
 
 export interface SkillInfo {

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-agent"
-version = "0.12.0"
+version = "0.13.0"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -95,6 +95,17 @@ web = [
   "fastapi>=0.104.0,<1",
   "uvicorn[standard]>=0.24.0,<1",
   "pywinpty>=2.0.0,<3; sys_platform == 'win32'",
+]
+# Dashboard knowledge bases — vector index (FAISS). API contract: docs/zh/knowledge-api.md
+knowledge = [
+  "faiss-cpu>=1.8.0,<2",
+  # faiss wheels are often built against NumPy 1.x; NumPy 2 can break swigfaiss import.
+  "numpy>=1.24.0,<2",
+  "pypdf>=5.0,<6",
+]
+# Dashboard knowledge bases — Microsoft GraphRAG (optional). See docs/zh/graphrag-pipeline.md
+knowledge-graphrag = [
+  "graphrag>=3.0.9,<4",
 ]
 rl = [
   "atroposlib @ git+https://github.com/NousResearch/atropos.git@c20c85256e5a45ad31edf8b7276e9c5ee1995a30",

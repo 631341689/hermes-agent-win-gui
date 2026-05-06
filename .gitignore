@@ -70,3 +70,13 @@ mini-swe-agent/
 result
 website/static/api/skills-index.json
 models-dev-upstream/
+
+# Optional local vendor clones (MinerU / GraphRAG upstream trees; not shipped)
+MinerU-master/
+graphrag-main/
+
+# Cursor agent plans (local only)
+.cursor/plans/
+
+# Local test corpora
+产品手册.txt

@@ -63,6 +63,11 @@ CONFIGURABLE_TOOLSETS = [
     ("todo",            "📋 Task Planning",             "todo"),
     ("memory",          "💾 Memory",                    "persistent memory across sessions"),
     ("session_search",  "🔎 Session Search",            "search past conversations"),
+    (
+        "knowledge",
+        "📖 Knowledge Bases",
+        "Dashboard KBs: knowledge_catalog + list + vector + GraphRAG query",
+    ),
     ("clarify",         "❓ Clarifying Questions",      "clarify"),
     ("delegation",      "👥 Task Delegation",           "delegate_task"),
     ("cronjob",         "⏰ Cron Jobs",                 "create/list/update/pause/resume/run, with optional attached skills"),
@@ -466,6 +471,8 @@ TOOL_CATEGORIES = {
 TOOLSET_ENV_REQUIREMENTS = {
     "vision":     [("OPENROUTER_API_KEY",   "https://openrouter.ai/keys")],
     "moa":        [("OPENROUTER_API_KEY",   "https://openrouter.ai/keys")],
+    # Vector query uses the same OpenAI-compatible embedding vars as Dashboard reindex.
+    "knowledge":  [("OPENAI_API_KEY",       "https://platform.openai.com/api-keys")],
 }
 
 

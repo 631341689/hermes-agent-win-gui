@@ -60,6 +60,7 @@ hermes-agent/
 **Logs:** `~/.hermes/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
 `gateway.log` when running the gateway. Profile-aware via `get_hermes_home()`.
 Browse with `hermes logs [--follow] [--level ...] [--session ...]`.
+**Knowledge bases (Dashboard):** REST contract — `docs/zh/knowledge-api.md` (§1.4 / §2.9: optional **two-stage** vector recall + BM25 blend via `knowledge.retrieval`); data under `{HERMES_HOME}/knowledge/`. Optional install: `pip install -e ".[knowledge]"`.
 
 ## File Dependency Chain
 

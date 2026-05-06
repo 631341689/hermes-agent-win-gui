@@ -61,6 +61,8 @@ except ImportError:
         f"Install with: {sys.executable} -m pip install 'fastapi' 'uvicorn[standard]'"
     )
 
+from hermes_cli.knowledge_api import router as _knowledge_router
+
 WEB_DIST = Path(os.environ["HERMES_WEB_DIST"]) if "HERMES_WEB_DIST" in os.environ else Path(__file__).parent / "web_dist"
 _log = logging.getLogger(__name__)
 
@@ -4115,6 +4117,8 @@ def _mount_plugin_api_routes():
         except Exception as exc:
             _log.warning("Failed to load plugin %s API routes: %s", plugin["name"], exc)
 
+
+app.include_router(_knowledge_router)
 
 # Mount plugin API routes before the SPA catch-all.
 _mount_plugin_api_routes()

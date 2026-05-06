@@ -2092,7 +2092,13 @@ from tools.registry import registry, tool_error
 
 WEB_SEARCH_SCHEMA = {
     "name": "web_search",
-    "description": "Search the web for information. Returns up to 5 results by default with titles, URLs, and descriptions. The query is passed through to the configured backend, so operators such as site:domain, filetype:pdf, intitle:word, -term, and \"exact phrase\" may work when the backend supports them.",
+    "description": (
+        "Search the public web for information. Returns up to 5 results by default with titles, URLs, "
+        "and descriptions; backend-specific operators (site:, filetype:, intitle:, etc.) may work when supported. "
+        "If Hermes knowledge bases might already cover the topic (Dashboard uploads, or HERMES_ACTIVE_KB_IDS), "
+        "consider a quick knowledge_catalog + knowledge_vector_query pass first—it can yield more on-topic "
+        "excerpts—then use the web when you still need freshness or broader internet reach."
+    ),
     "parameters": {
         "type": "object",
         "properties": {
@@ -2114,7 +2120,13 @@ WEB_SEARCH_SCHEMA = {
 
 WEB_EXTRACT_SCHEMA = {
     "name": "web_extract",
-    "description": "Extract content from web page URLs. Returns page content in markdown format. Also works with PDF URLs (arxiv papers, documents, etc.) — pass the PDF link directly and it converts to markdown text. Pages under 5000 chars return full markdown; larger pages are LLM-summarized and capped at ~5000 chars per page. Pages over 2M chars are refused. If a URL fails or times out, use the browser tool to access it instead.",
+    "description": (
+        "Extract content from web page URLs into markdown (PDF URLs supported—pass the link directly). "
+        "Pages under 5000 chars return full markdown; larger pages are LLM-summarized (~5000 cap); "
+        "over 2M chars refused; on failure/timeouts try browser tools. When the same material may exist "
+        "in Hermes knowledge bases, you can optionally try knowledge_vector_query first, then fall back "
+        "to URLs here for versions or sites not in your index."
+    ),
     "parameters": {
         "type": "object",
         "properties": {

@@ -179,6 +179,16 @@ TOOLSETS = {
         "tools": ["session_search"],
         "includes": []
     },
+
+    "knowledge": {
+        "description": (
+            "Hermes Dashboard knowledge bases: list bases, vector (FAISS) semantic search, and "
+            "GraphRAG query for mode=graphrag bases (same registry as /api/knowledge). Use when answering "
+            "from uploaded project docs or PDF→Markdown (MinerU) corpora."
+        ),
+        "tools": ["knowledge_list_bases", "knowledge_vector_query", "knowledge_graphrag_query"],
+        "includes": [],
+    },
     
     "clarify": {
         "description": "Ask the user clarifying questions (multiple-choice or open-ended)",
@@ -350,7 +360,9 @@ TOOLSETS = {
     "hermes-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
         "tools": _HERMES_CORE_TOOLS,
-        "includes": []
+        # Dashboard knowledge bases (list + vector query); vector tools omit
+        # from schema when FAISS/embeddings unavailable (registry check_fn).
+        "includes": ["knowledge"],
     },
 
     "hermes-cron": {
@@ -361,7 +373,7 @@ TOOLSETS = {
         # the user explicitly enables them.
         "description": "Default cron toolset - same core tools as hermes-cli; gated by `hermes tools`",
         "tools": _HERMES_CORE_TOOLS,
-        "includes": []
+        "includes": ["knowledge"],
     },
 
     "hermes-telegram": {

@@ -45,6 +45,7 @@ class TestEnsureHermesHome:
             assert (tmp_path / "sessions").is_dir()
             assert (tmp_path / "logs").is_dir()
             assert (tmp_path / "memories").is_dir()
+            assert (tmp_path / "knowledge").is_dir()
 
     def test_creates_default_soul_md_if_missing(self, tmp_path):
         with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
