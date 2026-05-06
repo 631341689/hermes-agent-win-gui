@@ -10,6 +10,18 @@
 
 ![Hermes Web Dashboard on Windows](assets/readme-dashboard-windows.png)
 
+### 知识库（向量 / GraphRAG）
+
+以下为 **Dashboard → 知识库** 相关界面示意：首页列表、**分块向量（FAISS）** 库、分块与检索参数、**GraphRAG** 能力。若截图含本机路径或库名，可自行打码后再替换 `assets/` 下对应文件。
+
+![知识库首页](assets/知识库首页.png)
+
+![分块向量库](assets/分块向量库.png)
+
+![分块知识库参数](assets/分块知识库参数.png)
+
+![GraphRAG 功能](assets/graphrag功能.png)
+
 ---
 
 ## 本仓库在做什么
@@ -260,20 +272,7 @@ pip install -e "."
 | Dashboard 前端 | **`web/src/pages/KnowledgePage.tsx`**、全局任务 **`web/src/contexts/KnowledgeTasksContext.tsx`** |
 | Agent 工具 | **`tools/knowledge_tool.py`** |
 
----
 
-## 隐私与仓库内容说明（已帮你做过静态检查）
-
-已对仓库内 **会被 Git 跟踪** 的配置类模板做了静态检查，结论如下：
-
-| 检查项 | 结论 |
-|--------|------|
-| **`.env.example`** | 仅为注释与占位说明，无真实密钥赋值。 |
-| **`cli-config.yaml.example`** | 使用占位说明（如 `your-key-here`），无有效密钥。 |
-| **根目录 `.env`** | 若你本机存在该文件，**属于个人密钥**，且应在 **`.gitignore`** 中；**切勿** `git add` 后推送。 |
-| **测试代码中的 `sk-xxx`** | 多为单元测试用假字符串，非真实 API Key。 |
-
----
 
 ## 上游与许可证
 
