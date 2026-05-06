@@ -6,7 +6,7 @@
 
 ## 界面预览（Web Dashboard）
 
-以下为 **Windows 本机** 运行仪表盘后的示意（侧边栏、终端区、模型与工具状态等）。若你不希望截图里出现本机路径或会话信息，可自行打码后再替换 `assets/readme-dashboard-windows.png`。
+以下为 **Windows 本机** 运行仪表盘后的示意（侧边栏、终端区、模型与工具状态等）。
 
 ![Hermes Web Dashboard on Windows](assets/readme-dashboard-windows.png)
 
