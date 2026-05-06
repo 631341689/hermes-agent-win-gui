@@ -37,6 +37,8 @@
 更细的排障与发布清单见：**[docs/zh/安装与启动指南.md](docs/zh/安装与启动指南.md)**（含 **`.env` / `config.yaml`** 快速配置）。  
 目录与开发约定见：**[AGENTS.md](AGENTS.md)**。
 
+**Skills 提示：** 仓库 **`skills/`** 下的按需技能（例如 **`skills/research/hermes-knowledge-bases/`**）默认**不会**自动出现在本机 Hermes 里。请将对应技能**整个文件夹**复制到 **`%USERPROFILE%\.hermes\skills\`**（即当前 profile 的 **`{HERMES_HOME}/skills/`**，与 `config.yaml`、`.env` 同级目录下的 `skills`），再在 Chat 中执行 **`/reload-skills`**。若不想复制，可在 **`config.yaml`** 里配置 **`skills.external_dirs`** 指向本仓库的 **`skills/`** 目录，效果相同。
+
 ---
 
 ## 环境要求（Windows）
